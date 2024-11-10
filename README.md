@@ -1,4 +1,4 @@
-# Silkroad Online Client Patcher
+# Skrillax Universal Patcher
 
 This patcher allows up- _and_ downgrading of Silkroad Online in conjunction with
 the [Universal Patch Server](https://github.com/kumpelblase2/skrillax-universal-patch-server/).
