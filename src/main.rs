@@ -1,9 +1,10 @@
+use clap::Parser;
 use pk2::{Pk2, SyncLock};
 use speedy::{Readable, Writable};
 use std::env;
 use std::ffi::OsStr;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::io;
 use tokio::net::TcpSocket;
@@ -54,11 +55,34 @@ fn create_port_from_patch(patch: u32) -> u32 {
     32000 + patch
 }
 
+#[derive(Debug, Parser)]
+#[clap(name = "skrillax-client-patcher", version = env!("CARGO_PKG_VERSION"), author = "kumpelblase2", about = "Patch Silkroad to any version using a specialized patch server.")]
+struct ClientParserArgs {
+    #[clap(short, long, help = "The patch server to use, defaults to localhost")]
+    server: Option<String>,
+    #[clap(
+        short,
+        long,
+        required = true,
+        help = "The target patch version to patch to, e.g. 569."
+    )]
+    patch: u16,
+
+    #[clap(
+        help = "The directory of Silkroad Online, falls back to the current working directory."
+    )]
+    silkroad_dir: Option<PathBuf>,
+}
+
 fn main() {
-    println!("[*] Starting patching...");
-    let args: Vec<String> = env::args().collect();
-    let patch: u16 = args[1].parse().unwrap();
-    let base_path = env::current_dir().unwrap();
+    let args = ClientParserArgs::parse();
+
+    let patch: u16 = args.patch;
+    let base_path = args
+        .silkroad_dir
+        .unwrap_or_else(|| env::current_dir().unwrap());
+    let server_addr = args.server.unwrap_or("127.0.0.1".to_string());
+    println!("[*] Starting patching to version {patch}...");
     let media_path = base_path.join("Media.pk2");
     let original_division_info = load_division_info(&media_path);
     let new_division_info = create_local_division_info(&original_division_info);
@@ -69,7 +93,7 @@ fn main() {
     std::thread::spawn(move || {
         run_proxy(
             thread_token,
-            String::from("127.0.0.1"), // TODO: make this configurable
+            server_addr,
             create_port_from_patch(patch.into()),
         );
     });
